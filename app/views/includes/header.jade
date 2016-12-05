@@ -1,0 +1,63 @@
+.container
+    .row
+        .page-header
+            form(method='GET',action='/results',style='padding:30px').col-md-3
+                .input-group
+                    input.form-control(type='text',name='search',placeholder='电影搜索...')
+                    span.input-group-btn
+                        button.btn.btn-default(type='submit') 搜索
+.navbar.navbar-default.navbar-fixed-top
+    .container
+        .navbar-header
+            a.navbar-brand(href='/') 骐骥一跃,不能十步
+        p.navbar-text.navbar-right
+            a.navbar-link(href='/',) 首页
+            span &nbsp;|&nbsp;
+            a.navbar-link(href='/admin/list') 电影展示
+            span &nbsp;|&nbsp;
+            a.navbar-link(href='/admin/movie') 电影录入
+            span &nbsp;|&nbsp;
+            a.navbar-link(href='/admin/catetory/list') 电影分类
+            span &nbsp;|&nbsp;
+            a.navbar-link(href='/admin/catetory/create') 分类录入
+            span &nbsp;|&nbsp;
+            a.navbar-link(href='/user/userlist') 用户展示
+            span &nbsp;|&nbsp;
+            if user
+                span 欢迎您,#{user.name}
+                span &nbsp;|&nbsp;
+                a.navbar-link(href='/user/logout') 登出
+            else
+                a.navbar-link(href='/signup') 注册
+                span &nbsp;|&nbsp;
+                a.navbar-link(href='/signin') 登录
+
+
+#signupModal.modal.fade
+    .modal-dialog
+        .modal-content
+            form(method='POST',action='/user/signup')
+                .modal-header 注册
+                .modal-body
+                    .form-group
+                        label(for='signupName') 用户名
+                        input#signupName.form-control(name='user[name]',type='text')
+                        label(for='signupPassword') 密码
+                        input#signupPassword.form-control(name='user[password]',type='password')
+                .modal-footer
+                    button.btn.btn-default(type='button',data-dismiss='modal') 关闭
+                    button.btn.btn-primary(type='submit') 提交
+#signinModal.modal.fade
+    .modal-dialog
+        .modal-content
+            form(method='POST',action='/user/signin')
+                .modal-header 登录
+                .modal-body
+                    .form-group
+                        label(for='signinName') 用户名
+                        input#signinName.form-control(name='user[name]',type='text')
+                        label(for='signinPassword') 密码
+                        input#signinPassword.form-control(name='user[password]',type='password')
+                .modal-footer
+                    button.btn.btn-default(type='button',data-dismiss='modal') 关闭
+                    button.btn.btn-primary(type='submit') 提交

@@ -1,0 +1,39 @@
+extends ../layout
+block content
+    .container
+        .row
+            .panel.panel-primary
+                .panel-heading
+                    h3
+                        #{catetoryName}
+                .panel-body
+                    if movies && movies.length > 0
+                        each item in movies
+                            .col-md-2
+                                .thumbnail
+                                    a(href='/movie/#{item._id}')
+                                    if item.poster.indexOf('http') > -1
+                                        img(src='#{item.poster}',alt='#{item.title}',style='height:220px')
+                                    else
+                                        img(src='/upload/#{item.poster}',alt='#{item.title}',style='height:220px')
+                                    .caption.text-center
+                                        h4.wordsInaline #{item.title}
+                                        p: a.btn.btn-primary(href='/detail/#{item._id}',role='button') 观看正片
+                    .row
+                        ul.pagination.text-center.col-md-12(style=' padding-left:45%;box-sizing: border-box;')
+                            if currentPage!=1
+                                li
+                                    a(href='/results?#{query}&page=#{currentPage-1}') 上页
+                            - for (var i = 0; i < totalPages; i++) {
+                            - if (currentPage == (i + 1)) {
+                            li.active
+                                span #{currentPage}
+                            - }
+                            - else {
+                            li
+                                a(href='/results?#{query}&page=#{i + 1}') #{i + 1}
+                            - }
+                            - }
+                            if currentPage!=totalPages
+                                li
+                                    a(href='/results?#{query}&page=#{currentPage + 1}') 下页

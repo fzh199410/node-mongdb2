@@ -1,0 +1,193 @@
+node+mongodb 项目总结
+
+app.js(主入口)
+
+引入 express 模块 var express=require('express')  并使用 var app=express()
+
+基础配置
+
+var express=require('express')
+var path=require('path')
+var bodyParser=require('body-parser')  //转换参数
+var port=process.env.PORT||3000   //设置端口号 命令行中PORT=3000 xxxxx
+var app=express();
+app.set('views','./app/views/pages')  //设置视图路径
+app.set('view engine','jade')   //视图模版引擎
+app.use(express.cookieParser())
+if('development'===app.get('env')){   //开发环境的配置
+    app.set('showStackError',true)  //打印信息
+    app.use(express.logger(':method :url :status'))  //请求的 方法 路径 状态
+    app.locals.pretty=true  //格式化之后
+    mongoose.set('debug',true)   //mongoose bug打印
+}
+// app.set('env','production')  配置生产环境
+app.use(express.bodyParser())
+app.use(express.multipart()) //表单多文件提交
+app.use(express.static(path.join(__dirname,'public')))  //静态资源路径
+app.locals.moment=require('moment') //引用moment.js并 挂载locals.moment  直接使用(相当全局变量)
+require('./config/routes')(app)   //载入路由文件  并且执行主体为 app
+app.listen(port)
+
+
+
+项目中采用的是express 3.8版本  最新版本4.0 很多模块被单独提出 ,使用方法如下:
+//var bodyParser = require('body-parser')
+//var cookieParser=require('cookie-parser')
+//var session=require('express-session')
+//var multipart=require('connect-multiparty')
+
+文件读取方法(models下的所有文件为例)
+var fs=require('fs')
+var models_path=__dirname+'/app/models'
+var walk=function(path){
+    fs.readdirSync(Path)
+      .forEach(file){
+        var newPath=path+'/'+file   //定义新路径
+        var stat=fs.statSync(file)  //获取文件信息
+        if(stat.isFile()){
+            if(/(.*)\.(js|coffee)/.test(file)){require(newPath)}
+            else if(stat.isDirectory()){wakl(newPath)}
+        }
+
+      }
+}
+walk(models_path)
+
+连接mongodb数据库,前提mongodb运行  /bin目录下 ./mongod and ./mongo  (同时将session与mongodb建立关联)
+
+var mongoose=require('mongoose')
+var mongoStore=require('connect-mongo')(express)
+
+var dbUrl='mongodb://127.0.0.1:27017/imooc'
+
+mongoose.connect(dbUrl)
+app.use(express.session({
+           secret:'imooc',
+           store:new mongoStore({
+            url:dbUrl,
+            collection:'sessions'
+           })
+    }))
+
+
+/config/router.js
+//引入controller文件,路由拦截后做相应处理
+var Movie=require('../app/controllers/movie')
+var User=require('../app/controllers/user')
+modules.exports=function(app){
+    //拦截路由 (并且做权限处理)
+    app.get('/admin/movie',User.siginReqruied,User.adminRequired,Movie.create)
+}
+
+//mongoose对数据的预处理  schema => models => instance (movies为例)
+
+schema的创建
+var mongoose=require('mongoose')
+var Schema=mongoose.Schema
+var ObjectId=Schema.Types.ObjectId
+
+//定义schema结构---------
+var MovieSchema=new Schema({
+    director:String,
+    catetory:{type:ObjectId,ref:'Catetory'}   //关联catetory model
+    meta:{createAt:{type:Date,default:Date.now()},updateAt:{type:Date,default:Date.now()}}
+})
+//定义存储前方法
+MovieSchema.pre('save',function(next){
+    if(this.isNew){this.meta.createAt=this.meta.updateAt=Date.now()}
+    else{this.meta.updateAt=Date.now()}
+    next()
+})
+//定义实例方法(User schema为例)
+加盐加密
+bcryptjs.genSalt(10,function(err,salt){
+    bcryptjs.hash(user.password,salt,function(err,hash){
+        user.password=hash
+        next()
+    })
+})
+UserSchama.methods={
+    comparePassword:function(password,cb){
+        bcryptjs.compare(password,this.password,function(err,isMathch){
+          cb(null,isMatch)
+        })
+    }
+}
+//定义模型静态方法
+MovieSchema.statics={
+    fetch:function(cb){
+        return this.find({}).sort('meta.updateAt').exec(cb)
+    },
+    findById:function(id,cb){return this.findOne({_id:id}).exec(cb)}
+    //⚠注意 查询有两种基础方法 find() 查找多个 and findOne() 查找一个  可以不用封装 直接使用 Movie.find({}).exec(function(err,result){})
+}
+modules.exports=MovieSchema
+
+//定义model---------
+var mongoose=require('mongoose')
+var MovieSchema=require('../schemas/movie');
+var Movie=mongoose.model('Movie',MovieSchema) ;  // 存储数据的时候 如未制定collection的名字 系统会自动根据model的名字命名 规则为 model的名字小写+s
+module.exports=Movie
+
+//核心模块  controller (movies为例)
+movie存储过程
+首先判断req.body.movie._id中是否有有id
+如果有就为更新:
+Movie.findOne({_id:id}).exec(function)
+用underscore的extend方法合并成最新的movie  _movie=underscore.extend(movie,movieObj)
+_movie=new Movie(_movie) ;
+_movie.save(cb)
+如果没有就为创建
+再判断是否有catetoryId
+如果有的话说明未创建新类别  在catetory movies下装入movie  给movie的catetory装入值
+Catetory.find({_id:_catetoryId},function(err,catetory){
+    catetory.movies.push(_movie._id)
+    catetory.save(function(err,result){
+        movie.catetory=catetory._id;
+        movie.save()
+    })
+})
+关联查找  movie
+Catetory.find({})
+        .populate({path:'movies'})
+
+                    .row
+                        ul.pagination.text-center.col-md-12(style=' padding-left:45%;box-sizing: border-box;')
+                            if currentPage!=1
+                                li
+                                    a(href='/results?#{query}&page=#{currentPage-1}') 上页
+                            - for (var i = 0; i < totalPages; i++) {
+                            - if (currentPage == (i + 1)) {
+                            li.active
+                                span #{currentPage}
+                            - }
+                            - else {
+                            li
+                                a(href='/results?#{query}&page=#{i + 1}') #{i + 1}
+                            - }
+                            - }
+                            if currentPage!=totalPages
+                                li
+                                    a(href='/results?#{query}&page=#{currentPage + 1}') 下页
+
+保存图片路径并保存到本地
+exports.savePoster=function(req,res,next){
+    var posterData=req.files.uploadPoster;
+    var filePath=posterData.path;
+    var originalFilename=posterData.originalFilename
+    if(originalFilename){
+        fs.readFile(filePath,function(err,data){
+            var timestamp=Date.now()
+            var type=posterData.type.split('/')[1]
+            var poster=timestamp+'.'+type
+            var newPath=path.join(__dirname,'../../','public/upload/'+poster)
+            fs.writeFile(newPath,data,function(err){
+                req.poster=poster
+                next()
+            })
+        })
+    }else{next()}
+}
+
+传值方法  post  req.post   get/delete  req.query
+url  href='/admin/update/#{item.id}'     app.get('/admin/update/:id')  req.params.id
